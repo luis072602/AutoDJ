@@ -1,5 +1,5 @@
 // Cadena de salida: decks → master → ecualizador (5 bandas) → limitador → analizador → altavoces.
-// Todo lo que suena pasa por aquí, venga de Audius o de un archivo.
+// Todo lo que suena pasa por aquí, venga de un archivo o de YouTube.
 import { S, clamp } from './state.js';
 
 export const BANDS = [
@@ -21,8 +21,6 @@ let volume = .9;
 
 export function ensure() {
   if (S.ctx) return;
-  // En iPhone, sin esto el interruptor de silencio deja muda la página
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
   const ctx = S.ctx = new (window.AudioContext || window.webkitAudioContext)();
   S.master = ctx.createGain();
   S.master.gain.value = volume;

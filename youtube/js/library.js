@@ -5,27 +5,22 @@
 import { S, SCENES, ready, emit, log } from './state.js';
 import { ensure } from './audio.js';
 import { analyze, META } from './analyze.js';
-import { streamUrl } from './audius.js';
 
 // En celulares con poca memoria solo se adelanta una.
 const AHEAD = navigator.deviceMemory && navigator.deviceMemory <= 4 ? 1 : 2;
-const NET_PAUSE = 10000;   // tras un fallo de red no se insiste durante 10 s
-let netFail = 0;
-const online = () => Date.now() - netFail > NET_PAUSE;
 
-// ---------- Análisis recordado entre sesiones (canciones de Audius) ----------
+// ---------- Análisis recordado entre sesiones (canciones de YouTube) ----------
 let metaCache = {};
-try { metaCache = JSON.parse(localStorage.getItem('adj_audius_meta') || '{}') || {}; } catch {}
+try { metaCache = JSON.parse(localStorage.getItem('adj_meta2') || '{}') || {}; } catch {}
 function saveMeta(t) {
-  if (!t.aid) return;
-  metaCache[t.aid] = Object.fromEntries(META.map(k => [k, t[k]]));
-  try { localStorage.setItem('adj_audius_meta', JSON.stringify(metaCache)); } catch {}
+  if (!t.vid) return;
+  metaCache[t.vid] = Object.fromEntries(META.map(k => [k, t[k]]));
+  try { localStorage.setItem('adj_meta2', JSON.stringify(metaCache)); } catch {}
 }
 
-// aid = identificador en Audius; bpm = el que declara Audius, útil para ordenar antes de analizar
-export function makeTrack({ name, aid = null, file = null, len = null, bpm = null, genre = null, url = null }) {
-  const t = { id: S.nid++, name, aid, file, len, bpm, genre, url, an: false, buffer: null, loading: null, bad: false, err: null };
-  if (aid && metaCache[aid]) Object.assign(t, metaCache[aid], { an: true });
+export function makeTrack({ name, vid = null, file = null, len = null }) {
+  const t = { id: S.nid++, name, vid, file, len, an: false, buffer: null, loading: null, bad: false, err: null };
+  if (vid && metaCache[vid]) Object.assign(t, metaCache[vid], { an: true });
   return t;
 }
 
@@ -33,9 +28,13 @@ export function makeTrack({ name, aid = null, file = null, len = null, bpm = nul
 async function fetchData(t) {
   if (t.file) return t.file.arrayBuffer();
   let r;
-  try { r = await fetch(streamUrl(t.aid)); }
-  catch { throw Object.assign(new Error('sin conexión con Audius'), { offline: true }); }
-  if (!r.ok) throw new Error(r.status >= 400 && r.status < 500 ? 'Audius no entrega esta canción' : 'Audius respondió ' + r.status);
+  try { r = await fetch('/api/audio?v=' + t.vid); }
+  catch { throw Object.assign(new Error('el servidor local no responde'), { offline: true }); }
+  if (!r.ok) {
+    const j = await r.json().catch(() => null);
+    if (!j) throw Object.assign(new Error('el servidor local no responde'), { offline: true });
+    throw new Error(j.error || 'error ' + r.status);
+  }
   return r.arrayBuffer();
 }
 
@@ -51,10 +50,8 @@ export function load(t) {
       t.err = null;
     } catch (e) {
       t.buffer = null;
-      t.err = e.message || 'no se pudo leer el audio';
-      // Sin red no se descarta la canción; si falla dos veces habiendo red, es la canción y se salta
-      if (e.offline) { netFail = Date.now(); t.fails = (t.fails || 0) + 1; }
-      if (!e.offline || (t.fails >= 2 && navigator.onLine !== false)) t.bad = true;
+      t.err = e.offline ? e.message : (e.message || 'no se pudo leer el audio');
+      if (e.offline) S.server = false; else t.bad = true;
     } finally {
       t.loading = null;
       emit();
@@ -84,10 +81,21 @@ export const nextTrack = () => upcoming(1)[0] || null;
 export function housekeeping() {
   if (!S.tracks.length) return;
   const next = upcoming(AHEAD);
-  for (const t of next) if (!ready(t) && !t.loading && (t.file || online())) load(t);
+  for (const t of next) if (!ready(t) && !t.loading && (t.file || S.server)) load(t);
   const keep = new Set([S.cur && S.cur.t, S.mix && S.mix.nd.t, S.mix && S.mix.o.t, S.cue, ...next]);
   for (const t of S.tracks) if (t.buffer && !t.loading && !keep.has(t)) t.buffer = null;
 }
+
+// ---------- Emparejar archivos con canciones de YouTube por nombre ----------
+const norm = x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/\(.*?\)|\[.*?\]|official|video|audio|lyrics|letra|feat\.?|ft\./g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+const words = x => new Set(norm(x).split(' ').filter(w => w.length > 1));
+const sim = (a, b) => {
+  const A = words(a), B = words(b);
+  if (!A.size || !B.size) return 0;
+  let n = 0; A.forEach(w => B.has(w) && n++);
+  return n / Math.min(A.size, B.size);
+};
 
 // ---------- Altas y bajas ----------
 export async function addFiles(files) {
@@ -96,24 +104,39 @@ export async function addFiles(files) {
     const t = makeTrack({ name: f.name.replace(/\.[^.]+$/, ''), file: f });
     S.tracks.push(t); emit();
     await load(t);
-    if (t.bad) {
-      const k = S.tracks.indexOf(t);
-      if (k >= 0) S.tracks.splice(k, 1);
-      log('No pude leer «' + f.name + '»', true);
+    const k = S.tracks.indexOf(t);
+    if (t.bad) { if (k >= 0) S.tracks.splice(k, 1); log('No pude leer «' + f.name + '»', true); }
+    else if (k >= 0) {
+      // Si la lista ya tiene esa canción desde YouTube, el archivo pasa a ser su fuente de audio
+      const y = S.tracks.find(x => x.vid && !x.file && !x.loading && sim(x.name, t.name) >= .8);
+      if (y) {
+        Object.assign(y, Object.fromEntries(META.map(m => [m, t[m]])), { file: f, an: true, bad: false, err: null });
+        if (!(S.cur && S.cur.t === y) && !(S.mix && S.mix.nd.t === y)) y.buffer = t.buffer;
+        S.tracks.splice(k, 1);
+      }
     }
     emit();
   }
 }
 
-// Suma canciones de Audius a la lista (sin repetir las que ya están). Devuelve cuántas entraron.
-export function addTracks(items) {
-  const have = new Set(S.tracks.map(t => t.aid).filter(Boolean));
-  const fresh = items.filter(it => !have.has(it.aid) && have.add(it.aid)).map(makeTrack);
-  S.tracks.push(...fresh);
+// Carga una lista de YouTube: [{ vid, name, len }]. Los archivos que ya estaban se conservan y se emparejan.
+// Con append se suma a lo que ya hay en vez de reemplazar las canciones de YouTube anteriores.
+export function addYouTube(items, title, append = false) {
+  const local = S.tracks.filter(t => t.file), used = new Set();
+  const out = items.map(it => {
+    const m = local.find(t => !used.has(t) && sim(t.name, it.name) >= .8);
+    if (m) { used.add(m); m.vid = it.vid; m.name = it.name; return m; }
+    return makeTrack(it);
+  });
+  if (append) S.tracks = [...S.tracks, ...out.filter(t => !S.tracks.includes(t) && !S.tracks.some(x => x.vid === t.vid))];
+  else {
+    const have = new Set(out), busy = t => (S.cur && S.cur.t === t) || (S.mix && (S.mix.nd.t === t || S.mix.o.t === t));
+    S.tracks = [...out, ...S.tracks.filter(t => !have.has(t) && (t.file || busy(t)))];
+  }
   emit();
-  return fresh.length;
+  log('«' + title + '»: ' + items.length + (items.length === 1 ? ' canción' : ' canciones') + (used.size ? ' (' + used.size + ' con archivo propio)' : '') +
+    (S.server ? '. Pulsa Reproducir.' : '. Para oírlas abre la app con «py server.py».'), !S.server);
 }
-export const hasTrack = aid => S.tracks.some(t => t.aid === aid);
 
 export function removeTrack(t) {
   if ((S.cur && S.cur.t === t) || (S.mix && (S.mix.nd.t === t || S.mix.o.t === t))) { log('No puedes quitar la canción que está sonando', true); return; }
@@ -129,27 +152,25 @@ export function moveTrack(i, d) {
   emit();
 }
 
-// Reordena lo que queda por sonar según el ambiente. Para ordenar por BPM basta el que declara Audius;
-// por energía hace falta el análisis. Las canciones sin ese dato van al final.
+// Reordena lo que queda por sonar según el ambiente. Las canciones sin analizar van al final.
 export function autoSort() {
-  const sc = SCENES[S.scene], s = sc.sort, usable = t => sc.by === 'energy' ? t.an : !!t.bpm;
   const ci = baseIdx(), head = S.tracks.slice(0, ci + 1), tail = S.tracks.slice(ci + 1);
-  const rest = tail.filter(usable), raw = tail.filter(t => !usable(t));
+  const rest = tail.filter(t => t.an), raw = tail.filter(t => !t.an), s = SCENES[S.scene].sort;
   if (typeof s === 'function') rest.sort(s);
   else if (s === 'near' && rest.length) {
     // Encadena cada canción con la de BPM más cercano a la anterior
     const out = [];
     let last = head.length ? head[head.length - 1] : null;
-    if (!last || !last.bpm) { rest.sort((a, b) => a.bpm - b.bpm); last = rest.shift(); out.push(last); }
+    if (!last || !last.an) { rest.sort((a, b) => a.bpm - b.bpm); last = rest.shift(); out.push(last); }
     while (rest.length) { rest.sort((a, b) => Math.abs(a.bpm - last.bpm) - Math.abs(b.bpm - last.bpm)); last = rest.shift(); out.push(last); }
     rest.push(...out);
   }
   S.tracks = [...head, ...rest, ...raw];
   emit();
-  log('Lista ordenada para: ' + sc.n + (raw.length ? ' · ' + raw.length + ' sin analizar quedaron al final (pulsa «Analizar todo»)' : ''));
+  log('Lista ordenada para: ' + SCENES[S.scene].n + (raw.length ? ' · ' + raw.length + ' sin analizar quedaron al final (pulsa «Analizar todo»)' : ''));
 }
 
-// ---------- Analizar toda la lista (BPM medido, intro y final de cada canción) ----------
+// ---------- Analizar toda la lista (para poder ordenarla por BPM o energía) ----------
 let scanning = false;
 export const isScanning = () => scanning;
 export async function scanAll() {
@@ -162,12 +183,12 @@ export async function scanAll() {
     if (!scanning) break;
     n++;
     if (!S.tracks.includes(t) || t.an) continue;
+    if (!t.file && !S.server) { offline = true; break; }
     log('Analizando ' + n + ' de ' + todo.length + ': «' + t.name + '»…');
     await load(t);
-    if (!t.an && !t.bad) { offline = true; break; }
   }
   const left = S.tracks.filter(t => !t.an && !t.bad).length;
-  if (offline) log('Sin conexión con Audius: el análisis se detuvo.', true);
+  if (offline) log('El servidor local no responde: abre la app con «py server.py».', true);
   else if (left) log('Análisis detenido: faltan ' + left + ' canciones.');
   else log('Lista analizada. Ya puedes ordenarla para el ambiente.');
   scanning = false; emit();

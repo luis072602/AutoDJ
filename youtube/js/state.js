@@ -11,7 +11,7 @@ export const SCENES = {
   variado: { n: 'Variado (auto)', mix: 14, sync: true, auto: true, sort: 'near', d: 'Se adapta a cada canción: mide su intro y su final y ajusta el cruce' },
   fiesta: { n: 'Fiesta', mix: 16, sync: true, sort: (a, b) => a.bpm - b.bpm, d: 'Sube el ritmo poco a poco, cruces largos' },
   chill: { n: 'Chill / lounge', mix: 22, sync: false, sort: 'near', d: 'Canciones de BPM parecido, cruces suaves' },
-  gym: { n: 'Entrenamiento', mix: 8, sync: true, sort: (a, b) => a.energy - b.energy, by: 'energy', d: 'De menos a más energía, cruces medios' },
+  gym: { n: 'Entrenamiento', mix: 8, sync: true, sort: (a, b) => a.energy - b.energy, d: 'De menos a más energía, cruces medios' },
   radio: { n: 'Corte rápido', mix: 4, sync: false, sort: null, d: 'Respeta tu orden, cruces cortos' }
 };
 
@@ -22,6 +22,7 @@ export const S = {
   mix: null,       // cruce en curso: { nd, o, at, dur, end }
   cue: null,       // canción pedida que aún se está cargando
   last: null,      // última canción que sonó (para saber cuál sigue)
+  server: false,   // ¿responde server.py? (necesario para el audio de YouTube)
   scene: 'variado', mixT: 14, sync: true, loop: true,
   flip: 0, nid: 0
 };
