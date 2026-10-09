@@ -12,17 +12,16 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 function statusLine(t) {
   if (t.bad) return `<span class="err">No disponible${t.err ? ': ' + esc(t.err) : ''} · clic para reintentar</span>`;
   if (t.loading) return t.an ? 'cargando audio…' : (t.file ? 'analizando…' : 'descargando y analizando…');
-  if (t.err) return `<span class="err">${esc(t.err)} · clic para reintentar</span>`;
   if (t.an) return fmt(t.dur) + ' · intro ' + Math.round(Math.max(0, t.drop - t.b0)) + ' s · final ' + Math.round(Math.max(0, t.end - t.out)) + ' s' + (t.weak ? ' · BPM incierto' : '');
-  return (t.len ? fmt(t.len) + ' · ' : '') + (t.genre ? esc(t.genre) + ' · ' : '') + 'se analiza al acercarse su turno';
+  return (t.len ? fmt(t.len) + ' · ' : '') + 'se analiza al acercarse su turno';
 }
 function row(t, i) {
   const cls = [S.cur && S.cur.t === t ? 'cur' : '', S.cue === t ? 'cue' : '', t.bad ? 'bad' : ''].join(' ');
-  const link = t.url ? ` · <a href="${esc(t.url)}" target="_blank" rel="noopener" title="Abrir en Audius">↗</a>` : '';
+  const link = t.vid ? ` · <a href="https://music.youtube.com/watch?v=${t.vid}" target="_blank" rel="noopener" title="Abrir en YouTube Music">↗</a>` : '';
   return `<li data-i="${i}" class="${cls}"><span class="n">${i + 1}</span>` +
     `<div class="t" data-p="${i}" title="Clic para mezclar hacia esta canción"><b>${esc(t.name)}</b>` +
-    `<small><span class="src">${t.file ? 'archivo' : 'Audius'}</span>${statusLine(t)}${link}</small></div>` +
-    `<span class="bpm">${t.bpm ? Math.round(t.bpm) : t.loading ? '…' : '—'}</span>` +
+    `<small><span class="src">${t.file ? 'archivo' : 'YouTube'}</span>${statusLine(t)}${link}</small></div>` +
+    `<span class="bpm">${t.an ? Math.round(t.bpm) : t.loading ? '…' : '—'}</span>` +
     `<span class="ops"><button data-u="${i}" aria-label="Subir">↑</button><button data-d="${i}" aria-label="Bajar">↓</button><button data-x="${i}" aria-label="Quitar">✕</button></span></li>`;
 }
 function renderList() {
@@ -30,7 +29,7 @@ function renderList() {
   const rows = S.tracks.map((t, i) => [t, i]).filter(([t]) => !q || fold(t.name).includes(q));
   $('#cnt').textContent = S.tracks.length ? '· ' + S.tracks.length + (q ? ' (mostrando ' + rows.length + ')' : '') : '';
   $('#list').innerHTML = rows.length ? rows.map(([t, i]) => row(t, i)).join('')
-    : '<li class="empty">' + (S.tracks.length ? 'Ninguna canción coincide con «' + esc(raw) + '».' : 'Aún no hay canciones. Busca arriba en Audius o agrega archivos.') + '</li>';
+    : '<li class="empty">' + (S.tracks.length ? 'Ninguna canción coincide con «' + esc(raw) + '».' : 'Aún no hay canciones. Conecta YouTube, pega un enlace o agrega archivos.') + '</li>';
   $('#scan').textContent = isScanning() ? 'Detener análisis' : 'Analizar todo';
 }
 function scrollToCurrent() {

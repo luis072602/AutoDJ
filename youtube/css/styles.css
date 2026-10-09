@@ -172,11 +172,3 @@ details input { width: 100%; margin-top: 8px; }
   .center { grid-column: 1 / -1; order: 3; }
   .list .ops button:not([data-x]) { display: none; }
 }
-
-/* ---------- Buscador de música ---------- */
-.credit { color: var(--mut); font-size: 12.5px; text-decoration: none; }
-.credit:hover { color: var(--fg); }
-#resBox > * + * { margin-top: 8px; }
-.scroll.short { max-height: min(300px, 44vh); }
-#res li { grid-template-columns: minmax(0, 1fr) auto auto; }
-#res li.in .t b { color: var(--mut); }

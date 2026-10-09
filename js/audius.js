@@ -47,7 +47,8 @@ async function show(title, job) {
   try {
     results = (await job()).filter(usable).map(toItem);
     render(title);
-    log(results.length ? results.length + ' canciones encontradas. Toca una para agregarla, o «Agregar todas».' : 'No encontré canciones que se puedan mezclar.');
+    const n = results.length;
+    log(n ? (n === 1 ? '1 canción encontrada' : n + ' canciones encontradas') + '. Toca una para agregarla, o «Agregar todas».' : 'No encontré canciones que se puedan mezclar.');
   } catch (e) { log(e.message, true); }
 }
 
@@ -86,7 +87,7 @@ export function initAudius() {
   };
   $('#addAll').onclick = () => {
     const n = addTracks(results);
-    log(n ? n + ' canciones agregadas a la lista. Pulsa Reproducir.' : 'Esas canciones ya estaban en la lista.');
+    log(n ? (n === 1 ? '1 canción agregada' : n + ' canciones agregadas') + ' a la lista. Pulsa Reproducir.' : 'Esas canciones ya estaban en la lista.');
     render($('#resT').textContent);
   };
 }

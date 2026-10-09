@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d0c14">
 <title>AutoDJ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
@@ -17,6 +16,7 @@
     <span class="tag">mezcla automática por BPM</span>
   </div>
   <div class="top-r">
+    <span class="pill" id="srv">Comprobando servidor…</span>
     <label class="lbl">Volumen <input type="range" id="vol" min="0" max="1" step=".01" value=".9"></label>
   </div>
 </header>
@@ -29,7 +29,7 @@
       <canvas id="spec" aria-hidden="true"></canvas>
       <div class="bands" id="bands"></div>
       <div class="row" id="presets"></div>
-      <p class="note">Actúa sobre todo lo que suena. Doble clic en una banda la devuelve a 0.</p>
+      <p class="note">Actúa sobre todo lo que suena: archivos y YouTube. Doble clic en una banda la devuelve a 0.</p>
     </section>
 
     <section class="panel" aria-label="Ambiente">
@@ -72,23 +72,23 @@
       <div class="log" id="log" role="status"></div>
     </section>
 
-    <section class="panel" aria-label="Buscar música">
+    <section class="panel" aria-label="YouTube">
       <div class="row between">
-        <h2>Música</h2>
-        <a class="credit" href="https://audius.co" target="_blank" rel="noopener">catálogo de Audius ↗</a>
+        <h2>YouTube Music</h2>
+        <button id="ytc">Conectar mi cuenta</button>
+      </div>
+      <div class="row" id="ytsel" hidden>
+        <select id="ytl" aria-label="Mis listas"></select>
+        <button id="ytload">Cargar lista</button>
       </div>
       <div class="row">
-        <input id="aq" type="search" placeholder="Busca una canción o artista, o pega un enlace de audius.co" aria-label="Buscar en Audius">
-        <button id="ago">Buscar</button>
+        <input id="yturl" type="url" placeholder="…o pega el enlace de una lista o canción pública" aria-label="Enlace de YouTube">
+        <button id="ytadd">Cargar enlace</button>
       </div>
-      <div class="scenes" id="genres" aria-label="Tendencias por género"></div>
-      <div id="resBox" hidden>
-        <div class="row between">
-          <span class="dm" id="resT"></span>
-          <button class="mini" id="addAll">Agregar todas</button>
-        </div>
-        <div class="scroll short"><ul class="list" id="res"></ul></div>
-      </div>
+      <details>
+        <summary>Client ID de Google</summary>
+        <input id="cid" placeholder="…apps.googleusercontent.com" aria-label="Client ID de Google">
+      </details>
     </section>
 
     <section class="panel" aria-label="Lista de reproducción">
@@ -96,13 +96,13 @@
         <h2>Lista de reproducción <span class="dm" id="cnt"></span></h2>
         <div class="row">
           <label class="btn" for="file">+ Archivos</label>
-          <button id="scan" title="Descarga y mide cada canción (BPM, intro y final) por adelantado">Analizar todo</button>
+          <button id="scan" title="Descarga y mide el BPM de todas las canciones para poder ordenarlas">Analizar todo</button>
           <button id="sort">Ordenar para el ambiente</button>
           <button id="clear">Vaciar</button>
         </div>
       </div>
       <input type="file" id="file" accept="audio/*" multiple hidden>
-      <div class="drop" id="drop">También puedes arrastrar aquí tus archivos de audio (mp3, wav, m4a…)</div>
+      <div class="drop" id="drop">Arrastra aquí tus archivos de audio (mp3, wav, m4a…)</div>
       <input type="search" id="q" placeholder="Buscar en la lista…" aria-label="Buscar en la lista">
       <div class="scroll" id="sc"><ul class="list" id="list"></ul></div>
     </section>

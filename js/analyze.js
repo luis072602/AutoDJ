@@ -4,8 +4,10 @@
 export const META = ['dur', 'bpm', 'weak', 'energy', 'start', 'end', 'b0', 'drop', 'out', 'wave', 'waveDur'];
 
 export async function analyze(t) {
-  const b = t.buffer, R = 11025, dur = Math.min(b.duration, 480);
-  const E = R / 55, H = 100 / E;   // la envolvente tiene E puntos por segundo; cada nivel de energía dura H segundos
+  const b = t.buffer, dur = Math.min(b.duration, 480);
+  let R = 11025, hop = 55;
+  try { new OfflineAudioContext(1, 1, R); } catch { R = 22050; hop = 110; }   // algunos navegadores no aceptan 11 kHz
+  const E = R / hop, H = 100 / E;   // la envolvente tiene E puntos por segundo; cada nivel de energía dura H segundos
   const render = async f => {
     const oc = new OfflineAudioContext(1, Math.ceil(dur * R), R), s = oc.createBufferSource();
     let n = s; s.buffer = b;
@@ -15,7 +17,7 @@ export async function analyze(t) {
   };
   const envOf = d => {
     const o = [];
-    for (let i = 0; i + 55 <= d.length; i += 55) { let m = 0; for (let j = 0; j < 55; j++) m += Math.abs(d[i + j]); o.push(m / 55); }
+    for (let i = 0; i + hop <= d.length; i += hop) { let m = 0; for (let j = 0; j < hop; j++) m += Math.abs(d[i + j]); o.push(m / hop); }
     return o;
   };
 

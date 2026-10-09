@@ -1,5 +1,5 @@
 // Cadena de salida: decks → master → ecualizador (5 bandas) → limitador → analizador → altavoces.
-// Todo lo que suena pasa por aquí, venga de Audius o de un archivo.
+// Todo lo que suena pasa por aquí, venga de un archivo o de YouTube.
 import { S, clamp } from './state.js';
 
 export const BANDS = [

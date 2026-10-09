@@ -86,6 +86,7 @@ export async function cue(t) {
   if (!t) return;
   if (S.mix) { log('Espera a que termine la mezcla en curso'); return; }
   if (S.cur && S.cur.t === t) return;
+  if (!t.file && !S.server) { log('Las canciones de YouTube necesitan el servidor local: abre la app con «py server.py».', true); return; }
   ensure();
   if (t.bad) { t.bad = false; t.err = null; }
   S.cue = t; emit();

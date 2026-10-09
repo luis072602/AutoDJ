@@ -86,9 +86,8 @@ export async function cue(t) {
   if (!t) return;
   if (S.mix) { log('Espera a que termine la mezcla en curso'); return; }
   if (S.cur && S.cur.t === t) return;
-  if (!t.file && !S.server) { log('Las canciones de YouTube necesitan el servidor local: abre la app con «py server.py».', true); return; }
   ensure();
-  if (t.bad) { t.bad = false; t.err = null; }
+  if (t.bad) { t.bad = false; t.err = null; t.fails = 0; }
   S.cue = t; emit();
   if (!ready(t)) log('Cargando «' + t.name + '»…');
   await load(t);
@@ -108,7 +107,7 @@ export function togglePlay() {
   ensure();
   if (!S.cur) {
     if (S.cue) return;
-    const t = S.tracks.find(t => !t.bad);
+    const t = (S.last && nextTrack()) || S.tracks.find(t => !t.bad);   // sigue donde quedó, o empieza la lista
     if (!t) { log('Agrega canciones primero'); return; }
     return cue(t);
   }
