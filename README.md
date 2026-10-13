@@ -26,6 +26,16 @@ Los módulos no cargan abriendo `index.html` con doble clic. En esta carpeta:
 
 y abre http://localhost:8080.
 
+## Pruebas
+
+Necesitan Node 22 o más reciente, sin instalar nada:
+
+    npm test
+
+Prueban el análisis (`js/analyze.js`) con canciones sintéticas de BPM, compás e intro conocidos, y el plan de cruce
+de `js/mixer.js` (cuándo empieza, cuánto dura, velocidad de la siguiente) con una imitación de la Web Audio API en
+`test/webaudio.js`. GitHub Actions las corre en cada cambio.
+
 ## Estructura
 
     index.html        estructura de la página
@@ -39,6 +49,7 @@ y abre http://localhost:8080.
     js/eq.js          panel del ecualizador y espectro
     js/ui.js          consola y lista
     js/audius.js      búsqueda, tendencias y enlaces de Audius
+    test/             pruebas automáticas (npm test)
     youtube/          versión para el PC que mezcla listas de YouTube (ver youtube/README.md)
 
 ## Límites
