@@ -38,8 +38,8 @@ si permite el acceso a la red: acepta en redes privadas. El PC descarga el audio
 En ese modo no funciona «Conectar mi cuenta» (Google solo acepta el login desde `localhost` o desde un sitio https);
 usa **Cargar enlace** con el enlace de tu lista (tiene que ser pública o «no listada»).
 
-**Desde cualquier lugar (GitHub Pages):** la página publicada funciona sola, pero solo con archivos de audio del propio
-aparato: GitHub aloja páginas, no puede ejecutar `server.py`, así que ahí no hay audio de YouTube.
+**Desde cualquier lugar:** usa la versión principal publicada en https://luis072602.github.io/AutoDJ/ (música de Audius
+y archivos del propio aparato). GitHub Pages no puede ejecutar `server.py`, así que ahí no hay audio de YouTube.
 
 ## Ecualizador
 
@@ -63,7 +63,6 @@ Un limitador evita que subir graves sature.
     js/config.js      Client ID de Google
     server.py         servidor local: sirve la app y entrega el audio de YouTube
     cache/            audio ya descargado (se limpia solo al pasar de 3 GB; se puede borrar)
-    index-anterior.html   la versión anterior, de un solo archivo
 
 ## Client ID de Google
 
